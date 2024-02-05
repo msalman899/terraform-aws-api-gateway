@@ -112,7 +112,7 @@ variable "access_log_format" {
 # API Gateway Method Settings Variables
 ########################################
 
-variable "stage_method_settings" {
+variable "stage_method_path" {
   description = "Stage method settings"
   type = map(object({
     metrics_enabled   = string

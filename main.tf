@@ -80,17 +80,17 @@ resource "aws_api_gateway_stage" "this" {
 }
 
 resource "aws_api_gateway_method_settings" "this" {
-  count = length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.stage_method_path
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  stage_name  = aws_api_gateway_stage.this[count.index].stage_name
-  method_path = var.method_path
+  stage_name  = split(" ", each.key)
+  method_path = split(" ", each.key)
 
   dynamic "settings" {
-    for_each = lookup(var.stage_method_settings,aws_api_gateway_stage.this[count.index].stage_name,"")
+    for_each = length(var.stage_method_path) > 0 ? [true] : []
     content {
-      metrics_enabled                            = settings.metrics_enabled
-      logging_level                              = settings.logging_level
+      metrics_enabled                            = lookup(each.value, "metrics_enabled")
+      logging_level                              = lookup(each.value, "logging_level")
       # data_trace_enabled                         = settings.data_trace_enabled
       # throttling_burst_limit                     = settings.throttling_burst_limit
       # throttling_rate_limit                      = settings.throttling_rate_limit
@@ -175,7 +175,8 @@ resource "aws_api_gateway_usage_plan_key" "this" {
 }
 
 resource "aws_cloudwatch_log_group" "this" {
-  name              = var.log_group_name
+  for_each = toset(var.stage_names)
+  name              = "${var.log_group_name}/${each.key}"
   retention_in_days = var.log_group_retention_in_days
   kms_key_id        = var.log_group_kms_key
 }
