@@ -111,6 +111,16 @@ variable "access_log_format" {
 ########################################
 # API Gateway Method Settings Variables
 ########################################
+
+variable "stage_method_settings" {
+  description = "Stage method settings"
+  type = map(object({
+    metrics_enabled   = string
+    logging_level     = string
+  }))
+  default = {}
+}
+
 variable "method_path" {
   description = "(Required) Method path defined as `{resource_path}/{http_method}` for an individual method override, or `*/*` for overriding all methods in the stage. Ensure to trim any leading forward slashes in the path."
   type        = string
