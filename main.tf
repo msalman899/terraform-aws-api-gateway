@@ -40,6 +40,10 @@ resource "aws_api_gateway_deployment" "this" {
     # updated.
     redeployment = "${timestamp()}"
   }
+
+  depends_on = [
+    "aws_api_gateway_integration.this",
+  ]
   lifecycle {
     create_before_destroy = true
   }
@@ -81,51 +85,59 @@ resource "aws_api_gateway_stage" "this" {
   }
 }
 
+resource "aws_api_gateway_resource" "this" {
+  for_each = { for k,v in var.resources: k => v if element(split(" ", k),0) != "/"}
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_rest_api.this.root_resource_id
+  path_part   = trimprefix(element(split(" ", each.key),0),"/")
+}
+
 resource "aws_api_gateway_method" "this" {
-  for_each = var.api_methods
+  for_each = var.resources
   rest_api_id          = aws_api_gateway_rest_api.this.id
-  resource_id          = aws_api_gateway_rest_api.this.root_resource_id
+  resource_id          = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
   api_key_required     = lookup(each.value, "api_key_required")
-  http_method          = lookup(each.value, "http_method")
+  http_method          = element(split(" ", each.key),1)
   authorization        = lookup(each.value, "authorization")
 }
 
-resource "aws_api_gateway_method_settings" "this" {
-  for_each = var.stage_method_settings
+# resource "aws_api_gateway_method_settings" "this" {
+#   for_each = var.stage_method_settings
 
-  rest_api_id = aws_api_gateway_rest_api.this.id
-  stage_name  = element(split(" ", each.key), 0)
-  method_path = element(split(" ", each.key), 1)
+#   rest_api_id = aws_api_gateway_rest_api.this.id
+#   stage_name  = element(split(" ", each.key), 0)
+#   method_path = element(split(" ", each.key), 1)
 
-  dynamic "settings" {
-    for_each = length(var.stage_method_settings) > 0 ? [true] : []
-    content {
-      metrics_enabled                            = lookup(each.value, "metrics_enabled")
-      logging_level                              = lookup(each.value, "logging_level")
-      # data_trace_enabled                         = settings.data_trace_enabled
-      # throttling_burst_limit                     = settings.throttling_burst_limit
-      # throttling_rate_limit                      = settings.throttling_rate_limit
-      # caching_enabled                            = settings.caching_enabled
-      # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
-      # cache_data_encrypted                       = settings.cache_data_encrypted
-      # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
-      # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
-    }
-  }
-}
+#   dynamic "settings" {
+#     for_each = length(var.stage_method_settings) > 0 ? [true] : []
+#     content {
+#       metrics_enabled                            = lookup(each.value, "metrics_enabled")
+#       logging_level                              = lookup(each.value, "logging_level")
+#       # data_trace_enabled                         = settings.data_trace_enabled
+#       # throttling_burst_limit                     = settings.throttling_burst_limit
+#       # throttling_rate_limit                      = settings.throttling_rate_limit
+#       # caching_enabled                            = settings.caching_enabled
+#       # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
+#       # cache_data_encrypted                       = settings.cache_data_encrypted
+#       # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
+#       # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
+#     }
+#   }
+# }
 
 resource "aws_api_gateway_integration" "this" {
-  rest_api_id             = "${aws_api_gateway_rest_api.this.id}"
-  resource_id             = "${aws_api_gateway_rest_api.this.root_resource_id}"
-  http_method             = lookup(var.integrations, "http_method")
-  type                    = lookup(var.integrations, "type")
-  integration_http_method = lookup(var.integrations, "integration_http_method")
-  passthrough_behavior    = lookup(var.integrations, "passthrough_behavior")
-  credentials             = lookup(var.integrations, "credentials")
-  uri                     = lookup(var.integrations, "uri")
+  for_each = var.integrations
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
+  http_method             = aws_api_gateway_method.this[each.key].http_method
+  type                    = lookup(each.value, "type", null)
+  integration_http_method = lookup(each.value, "integration_http_method", null)
+  passthrough_behavior    = lookup(each.value, "passthrough_behavior", null)
+  credentials             = lookup(each.value, "credentials", null)
+  uri                     = lookup(each.value, "uri", null)
 
-  request_parameters = lookup(var.integrations, "request_parameters")
-  request_templates = lookup(var.integrations, "request_templates")
+  request_parameters = lookup(each.value, "request_parameters", null)
+  request_templates = lookup(each.value, "request_templates", null)
 }
 
 # resource "aws_api_gateway_account" "this" {

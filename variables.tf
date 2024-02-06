@@ -113,7 +113,7 @@ variable "access_log_format" {
 # API Gateway Method Settings Variables
 ########################################
 
-variable "api_methods" {
+variable "resources" {
   description = ""
   type = any
   default = []
@@ -125,16 +125,11 @@ variable "integrations" {
   default = {}
 }
 
-variable "stage_method_settings" {
+variable "method_settings" {
   description = "Stage method settings"
   type = any
   default = {}
 }
-
-# variable "method_path" {
-#   description = "(Required) Method path defined as `{resource_path}/{http_method}` for an individual method override, or `*/*` for overriding all methods in the stage. Ensure to trim any leading forward slashes in the path."
-#   type        = string
-# }
 
 variable "metrics_enabled" {
   description = "(Optional) Whether Amazon CloudWatch metrics are enabled for this method."
