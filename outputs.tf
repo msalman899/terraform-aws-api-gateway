@@ -20,26 +20,26 @@ output "api_gateway_rest_api_execution_arn" {
 
 output "api_gateway_rest_api_stage_arn" {
   description = "Arn of the deployed stage(s)."
-  value       = aws_api_gateway_stage.this[0].arn
+  value = { for k, v in aws_api_gateway_stage.this : k => v.arn }
 }
 
 output "api_gateway_rest_api_stage_id" {
   description = "Id of the deployed stage(s)."
-  value       = aws_api_gateway_stage.this[0].id
+  value = { for k, v in aws_api_gateway_stage.this : k => v.id }
 }
 
 output "api_gateway_rest_api_stage_invoke_url" {
   description = "Invoke URL of the deployed stage(s)."
-  value       = aws_api_gateway_stage.this[0].invoke_url
+  value = { for k, v in aws_api_gateway_stage.this : k => v.invoke_url }
 }
 
 output "api_gateway_rest_api_stage_execution_arn" {
   description = "Execution arn of the deployed stage(s)."
-  value       = aws_api_gateway_stage.this[0].execution_arn
+  value = { for k, v in aws_api_gateway_stage.this : k => v.execution_arn }
 }
 
 output "api_gateway_rest_api_stage_web_acl" {
   description = "WAF Access Control List for the stage(s)"
-  value       = aws_api_gateway_stage.this[0].web_acl_arn
+  value = { for k, v in aws_api_gateway_stage.this : k => v.web_acl_arn }
 }
 

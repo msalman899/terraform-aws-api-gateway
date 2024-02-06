@@ -15,6 +15,7 @@ variable "description" {
 variable "openapi_definition" {
   description = "(Required) YAML formatted definition file using OpenAPI 3.x specification. This definition contains all API configuration inputs. Any inputs used in Terraform will override inputs in the definition."
   type        = string
+  default = null
 }
 
 variable "put_rest_api_mode" {
@@ -111,9 +112,23 @@ variable "access_log_format" {
 ########################################
 # API Gateway Method Settings Variables
 ########################################
-variable "method_path" {
-  description = "(Required) Method path defined as `{resource_path}/{http_method}` for an individual method override, or `*/*` for overriding all methods in the stage. Ensure to trim any leading forward slashes in the path."
-  type        = string
+
+variable "resources" {
+  description = ""
+  type = any
+  default = []
+}
+
+variable "integrations" {
+  description = ""
+  type = any
+  default = {}
+}
+
+variable "method_settings" {
+  description = "Stage method settings"
+  type = any
+  default = {}
 }
 
 variable "metrics_enabled" {
@@ -374,10 +389,10 @@ variable "waf_acl" {
 #######################
 # CloudWatch Variables
 #######################
-variable "cloudwatch_role_arn" {
-  description = "(Required) for the `api_gateway_account` resource."
-  type        = string
-}
+# variable "cloudwatch_role_arn" {
+#   description = "(Required) for the `api_gateway_account` resource."
+#   type        = string
+# }
 
 variable "log_group_name" {
   description = "(Optional, Forces new resource) The name of the log group. If omitted, Terraform will assign a random, unique name."
