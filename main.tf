@@ -12,7 +12,7 @@ resource "aws_api_gateway_rest_api" "this" {
 }
 
 resource "aws_api_gateway_deployment" "this" {
-  count = length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = toset(var.stage_names)
 
   rest_api_id = aws_api_gateway_rest_api.this.id
   description = "Managed by Terraform"
@@ -50,13 +50,13 @@ resource "aws_api_gateway_deployment" "this" {
 }
 
 resource "aws_api_gateway_stage" "this" {
-  count = length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = toset(var.stage_names)
 
   rest_api_id           = aws_api_gateway_rest_api.this.id
-  stage_name            = var.stage_names[count.index]
+  stage_name            = each.key
   description           = ""
   documentation_version = var.documentation_version
-  deployment_id         = aws_api_gateway_deployment.this[count.index].id
+  deployment_id         = aws_api_gateway_deployment.this[each.key].id
   cache_cluster_enabled = var.cache_cluster_enabled
   cache_cluster_size    = var.cache_cluster_size
   client_certificate_id = var.client_certificate_id
@@ -219,16 +219,16 @@ resource "aws_cloudwatch_log_group" "this" {
 }
 
 resource "aws_wafv2_web_acl_association" "this" {
-  count        = var.enable_waf != false && length(var.stage_names) > 0 ? length(var.stage_names) : 0
-  resource_arn = aws_api_gateway_stage.this[count.index].arn
+  for_each        = var.enable_waf != false ? toset(var.stage_names) : []
+  resource_arn = aws_api_gateway_stage.this[each.key].arn
   web_acl_arn  = var.waf_acl
 }
 
 # REGIONAL custom domain name
 resource "aws_api_gateway_domain_name" "regional_acm" {
-  count = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "ACM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "ACM" ? toset(var.stage_names) : []
 
-  domain_name = var.domain_names[count.index]
+  domain_name = var.domain_names[each.key]
 
   regional_certificate_arn = var.domain_certificate_arn
 
@@ -247,17 +247,17 @@ resource "aws_api_gateway_domain_name" "regional_acm" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "regional_acm" {
-  count = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "ACM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "ACM" ? toset(var.stage_names) : []
 
   api_id      = aws_api_gateway_rest_api.this.id
-  domain_name = aws_api_gateway_domain_name.regional_acm[count.index].id
-  stage_name  = aws_api_gateway_stage.this[count.index].stage_name
+  domain_name = aws_api_gateway_domain_name.regional_acm[each.key].id
+  stage_name  = aws_api_gateway_stage.this[each.key].stage_name
 }
 
 resource "aws_api_gateway_domain_name" "regional_iam" {
-  count = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "IAM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "IAM" ? toset(var.stage_names) : []
 
-  domain_name = var.domain_names[count.index]
+  domain_name = var.domain_names[each.key]
 
   regional_certificate_name = var.domain_certificate_name
   certificate_body          = var.iam_certificate_body
@@ -279,18 +279,18 @@ resource "aws_api_gateway_domain_name" "regional_iam" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "regional_iam" {
-  count = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "IAM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "REGIONAL" && var.certificate_type == "IAM" ? toset(var.stage_names) : []
 
   api_id      = aws_api_gateway_rest_api.this.id
-  domain_name = aws_api_gateway_domain_name.regional_iam[count.index].id
-  stage_name  = aws_api_gateway_stage.this[count.index].stage_name
+  domain_name = aws_api_gateway_domain_name.regional_iam[each.key].id
+  stage_name  = aws_api_gateway_stage.this[each.key].stage_name
 }
 
 
 resource "aws_api_gateway_domain_name" "edge_acm" {
-  count = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "ACM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "ACM" ? toset(var.stage_names) : []
 
-  domain_name = var.domain_names[count.index]
+  domain_name = var.domain_names[each.key]
 
   certificate_arn = var.domain_certificate_arn
 
@@ -309,18 +309,18 @@ resource "aws_api_gateway_domain_name" "edge_acm" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "edge_acm" {
-  count = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "ACM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "ACM" ? toset(var.stage_names) : []
 
   api_id      = aws_api_gateway_rest_api.this.id
-  domain_name = aws_api_gateway_domain_name.edge_acm[count.index].id
-  stage_name  = aws_api_gateway_stage.this[count.index].stage_name
+  domain_name = aws_api_gateway_domain_name.edge_acm[each.key].id
+  stage_name  = aws_api_gateway_stage.this[each.key].stage_name
 }
 
 # EDGE custom domain name
 resource "aws_api_gateway_domain_name" "edge_iam" {
-  count = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "IAM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "IAM" ? toset(var.stage_names) : []
 
-  domain_name = var.domain_names[count.index]
+  domain_name = var.domain_names[each.key]
 
   certificate_name          = var.domain_certificate_name
   certificate_body          = var.iam_certificate_body
@@ -342,15 +342,15 @@ resource "aws_api_gateway_domain_name" "edge_iam" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "edge_iam" {
-  count = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "IAM" && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_api_domain_name && var.endpoint_type == "EDGE" && var.certificate_type == "IAM" ? toset(var.stage_names) : []
 
   api_id      = aws_api_gateway_rest_api.this.id
-  domain_name = aws_api_gateway_domain_name.edge_iam[count.index].id
-  stage_name  = aws_api_gateway_stage.this[count.index].stage_name
+  domain_name = aws_api_gateway_domain_name.edge_iam[each.key].id
+  stage_name  = aws_api_gateway_stage.this[each.key].stage_name
 }
 
 resource "aws_api_gateway_rest_api_policy" "this" {
-  count = var.create_rest_api_policy && length(var.stage_names) > 0 ? length(var.stage_names) : 0
+  for_each = var.create_rest_api_policy ? toset(var.stage_names) : []
 
   rest_api_id = aws_api_gateway_rest_api.this.id
   policy      = var.rest_api_policy
