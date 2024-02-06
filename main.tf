@@ -42,7 +42,7 @@ resource "aws_api_gateway_deployment" "this" {
   }
 
   depends_on = [
-    "aws_api_gateway_integration.this",
+    aws_api_gateway_integration.this
   ]
   lifecycle {
     create_before_destroy = true
