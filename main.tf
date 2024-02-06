@@ -118,15 +118,15 @@ resource "aws_api_gateway_method_settings" "this" {
 resource "aws_api_gateway_integration" "this" {
   rest_api_id             = "${aws_api_gateway_rest_api.this.id}"
   resource_id             = "${aws_api_gateway_rest_api.this.root_resource_id}"
-  http_method             = lookup(each.value, "http_method")
-  type                    = lookup(each.value, "type")
-  integration_http_method = lookup(each.value, "integration_http_method")
-  passthrough_behavior    = lookup(each.value, "passthrough_behavior")
-  credentials             = lookup(each.value, "credentials")
-  uri                     = lookup(each.value, "uri")
+  http_method             = lookup(var.integrations, "http_method")
+  type                    = lookup(var.integrations, "type")
+  integration_http_method = lookup(var.integrations, "integration_http_method")
+  passthrough_behavior    = lookup(var.integrations, "passthrough_behavior")
+  credentials             = lookup(var.integrations, "credentials")
+  uri                     = lookup(var.integrations, "uri")
 
-  request_parameters = lookup(each.value, "request_parameters")
-  request_templates = lookup(each.value, "request_templates")
+  request_parameters = lookup(var.integrations, "request_parameters")
+  request_templates = lookup(var.integrations, "request_templates")
 }
 
 # resource "aws_api_gateway_account" "this" {
