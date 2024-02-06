@@ -115,13 +115,13 @@ variable "access_log_format" {
 
 variable "api_methods" {
   description = ""
-  type = list(string)
+  type = any
   default = []
 }
 
 variable "integrations" {
   description = ""
-  type = map(string)
+  type = any
   default = {}
 }
 

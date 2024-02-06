@@ -82,13 +82,12 @@ resource "aws_api_gateway_stage" "this" {
 }
 
 resource "aws_api_gateway_method" "this" {
-  for_each = toset(var.api_methods)
+  for_each = var.api_methods
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_rest_api.this.root_resource_id
   api_key_required     = lookup(each.value, "api_key_required")
   http_method          = lookup(each.value, "http_method")
   authorization        = lookup(each.value, "authorization")
-  request_validator_id = try(aws_api_gateway_request_validator.api.id, null)
 }
 
 resource "aws_api_gateway_method_settings" "this" {
