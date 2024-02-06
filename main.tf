@@ -1,3 +1,5 @@
+#use this for SQS https://gist.github.com/afloesch/dc7d8865eeb91100648330a46967be25
+
 resource "aws_api_gateway_rest_api" "this" {
   name              = var.api_name
   description       = var.description
@@ -48,7 +50,7 @@ resource "aws_api_gateway_stage" "this" {
 
   rest_api_id           = aws_api_gateway_rest_api.this.id
   stage_name            = var.stage_names[count.index]
-  description           = "${var.stage_description} - Deployed on ${timestamp()}"
+  description           = ""
   documentation_version = var.documentation_version
   deployment_id         = aws_api_gateway_deployment.this[count.index].id
   cache_cluster_enabled = var.cache_cluster_enabled
@@ -57,37 +59,47 @@ resource "aws_api_gateway_stage" "this" {
   variables             = var.stage_variables
   xray_tracing_enabled  = var.xray_tracing_enabled
 
-  dynamic "access_log_settings" {
-    for_each = aws_cloudwatch_log_group.this.arn != null && var.access_log_format != null ? [true] : []
+  # dynamic "access_log_settings" {
+  #   for_each = aws_cloudwatch_log_group.this.arn != null && var.access_log_format != null ? [true] : []
 
-    content {
-      destination_arn = aws_cloudwatch_log_group.this.arn
-      format          = var.access_log_format
-    }
-  }
-  dynamic "canary_settings" {
-    for_each = var.enable_canary == true ? [true] : []
+  #   content {
+  #     destination_arn = aws_cloudwatch_log_group.this.arn
+  #     format          = var.access_log_format
+  #   }
+  # }
+  # dynamic "canary_settings" {
+  #   for_each = var.enable_canary == true ? [true] : []
 
-    content {
-      percent_traffic          = var.percent_traffic
-      stage_variable_overrides = var.stage_variable_overrides
-      use_stage_cache          = var.use_stage_cache
-    }
-  }
+  #   content {
+  #     percent_traffic          = var.percent_traffic
+  #     stage_variable_overrides = var.stage_variable_overrides
+  #     use_stage_cache          = var.use_stage_cache
+  #   }
+  # }
   lifecycle {
     create_before_destroy = false
   }
 }
 
+resource "aws_api_gateway_method" "this" {
+  for_each = toset(var.api_methods)
+  rest_api_id          = aws_api_gateway_rest_api.this.id
+  resource_id          = aws_api_gateway_rest_api.this.root_resource_id
+  api_key_required     = lookup(each.value, "api_key_required")
+  http_method          = lookup(each.value, "http_method")
+  authorization        = lookup(each.value, "authorization")
+  request_validator_id = try(aws_api_gateway_request_validator.api.id, null)
+}
+
 resource "aws_api_gateway_method_settings" "this" {
-  for_each = var.stage_method_path
+  for_each = var.stage_method_settings
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  stage_name  = split(" ", each.key)
-  method_path = split(" ", each.key)
+  stage_name  = element(split(" ", each.key), 0)
+  method_path = element(split(" ", each.key), 1)
 
   dynamic "settings" {
-    for_each = length(var.stage_method_path) > 0 ? [true] : []
+    for_each = length(var.stage_method_settings) > 0 ? [true] : []
     content {
       metrics_enabled                            = lookup(each.value, "metrics_enabled")
       logging_level                              = lookup(each.value, "logging_level")
@@ -103,9 +115,23 @@ resource "aws_api_gateway_method_settings" "this" {
   }
 }
 
-resource "aws_api_gateway_account" "this" {
-  cloudwatch_role_arn = var.cloudwatch_role_arn
+resource "aws_api_gateway_integration" "this" {
+  rest_api_id             = "${aws_api_gateway_rest_api.this.id}"
+  resource_id             = "${aws_api_gateway_rest_api.this.root_resource_id}"
+  http_method             = lookup(each.value, "http_method")
+  type                    = lookup(each.value, "type")
+  integration_http_method = lookup(each.value, "integration_http_method")
+  passthrough_behavior    = lookup(each.value, "passthrough_behavior")
+  credentials             = lookup(each.value, "credentials")
+  uri                     = lookup(each.value, "uri")
+
+  request_parameters = lookup(each.value, "request_parameters")
+  request_templates = lookup(each.value, "request_templates")
 }
+
+# resource "aws_api_gateway_account" "this" {
+#   cloudwatch_role_arn = var.cloudwatch_role_arn
+# }
 resource "aws_api_gateway_api_key" "this" {
   for_each = {
     for key in var.api_keys : key.name => {
