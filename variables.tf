@@ -45,6 +45,12 @@ variable "stage_names" {
   default     = null
 }
 
+variable "method_settings" {
+  description = ""
+  type        = any
+  default     = {}
+}
+
 variable "stage_description" {
   description = "(Optional) Description of the stage."
   type        = string

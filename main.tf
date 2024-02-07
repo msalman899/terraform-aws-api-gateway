@@ -114,29 +114,29 @@ resource "aws_api_gateway_method" "this" {
   depends_on = [aws_api_gateway_model.this]
 }
 
-# resource "aws_api_gateway_method_settings" "this" {
-#   for_each = var.stage_method_settings
+resource "aws_api_gateway_method_settings" "this" {
+  for_each = var.method_settings
 
-#   rest_api_id = aws_api_gateway_rest_api.this.id
-#   stage_name  = element(split(" ", each.key), 0)
-#   method_path = element(split(" ", each.key), 1)
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  stage_name  = element(split(" ", each.key), 0)
+  method_path = element(split(" ", each.key), 1)
 
-#   dynamic "settings" {
-#     for_each = length(var.stage_method_settings) > 0 ? [true] : []
-#     content {
-#       metrics_enabled                            = lookup(each.value, "metrics_enabled")
-#       logging_level                              = lookup(each.value, "logging_level")
-#       # data_trace_enabled                         = settings.data_trace_enabled
-#       # throttling_burst_limit                     = settings.throttling_burst_limit
-#       # throttling_rate_limit                      = settings.throttling_rate_limit
-#       # caching_enabled                            = settings.caching_enabled
-#       # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
-#       # cache_data_encrypted                       = settings.cache_data_encrypted
-#       # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
-#       # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
-#     }
-#   }
-# }
+  dynamic "settings" {
+    for_each = length(var.method_settings) > 0 ? [true] : []
+    content {
+      metrics_enabled                            = lookup(each.value, "metrics_enabled",false)
+      logging_level                              = lookup(each.value, "logging_level",null)
+      # data_trace_enabled                         = settings.data_trace_enabled
+      # throttling_burst_limit                     = settings.throttling_burst_limit
+      # throttling_rate_limit                      = settings.throttling_rate_limit
+      # caching_enabled                            = settings.caching_enabled
+      # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
+      # cache_data_encrypted                       = settings.cache_data_encrypted
+      # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
+      # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
+    }
+  }
+}
 
 resource "aws_api_gateway_method_response" "this" {
   for_each = var.resources
