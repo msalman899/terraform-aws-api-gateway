@@ -110,6 +110,8 @@ resource "aws_api_gateway_method" "this" {
   authorization        = lookup(each.value, "authorization")
   request_parameters = lookup(each.value, "request_parameters", null)
   request_models        = lookup(each.value, "request_models", null)
+
+  depends_on = [aws_api_gateway_model.this]
 }
 
 # resource "aws_api_gateway_method_settings" "this" {
@@ -136,6 +138,16 @@ resource "aws_api_gateway_method" "this" {
 #   }
 # }
 
+resource "aws_api_gateway_method_response" "this" {
+  for_each = var.resources
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
+  http_method = aws_api_gateway_method.this[each.key].http_method
+  status_code = lookup(each.value,"status_code",null)
+
+  response_models = lookup(each.value,"response_models",null)
+}
+
 resource "aws_api_gateway_integration" "this" {
   for_each = var.integrations
   rest_api_id             = aws_api_gateway_rest_api.this.id
@@ -149,6 +161,16 @@ resource "aws_api_gateway_integration" "this" {
 
   request_parameters = lookup(each.value, "request_parameters", null)
   request_templates = lookup(each.value, "request_templates", null)
+}
+
+resource "aws_api_gateway_integration_response" "this" {
+  for_each = var.integrations
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
+  http_method       = aws_api_gateway_integration.this[each.key].http_method
+  status_code       = lookup(each.value,"status_code",null)
+
+  response_templates = lookup(each.value,"response_templates",null)
 }
 
 # resource "aws_api_gateway_account" "this" {
