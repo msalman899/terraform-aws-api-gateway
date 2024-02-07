@@ -11,6 +11,15 @@ resource "aws_api_gateway_rest_api" "this" {
   }
 }
 
+resource "aws_api_gateway_model" "this" {
+  for_each = var.models
+  rest_api_id  = aws_api_gateway_rest_api.this.id
+  name         = each.key
+  description  = lookup(each.value,"description","")
+  content_type = lookup(each.value,"content_type","")
+  schema = lookup(each.value,"schema",{})
+}
+
 resource "aws_api_gateway_deployment" "this" {
   for_each = toset(var.stage_names)
 
@@ -99,6 +108,8 @@ resource "aws_api_gateway_method" "this" {
   api_key_required     = lookup(each.value, "api_key_required")
   http_method          = element(split(" ", each.key),1)
   authorization        = lookup(each.value, "authorization")
+  request_parameters = lookup(each.value, "request_parameters", null)
+  request_models        = lookup(each.value, "request_models", null)
 }
 
 # resource "aws_api_gateway_method_settings" "this" {

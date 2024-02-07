@@ -30,6 +30,12 @@ variable "endpoint_type" {
   default     = "EDGE"
 }
 
+variable "models" {
+  description = ""
+  type        = any
+  default     = {}
+}
+
 #############################
 # API Gateway Stage Settings
 #############################
