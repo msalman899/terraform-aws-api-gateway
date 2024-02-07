@@ -125,7 +125,7 @@ resource "aws_api_gateway_method_settings" "this" {
     for_each = length(var.method_settings) > 0 ? [true] : []
     content {
       metrics_enabled                            = lookup(each.value, "metrics_enabled",false)
-      logging_level                              = lookup(each.value, "logging_level",null)
+      logging_level                              = lookup(each.value, "logging_level","OFF")
       # data_trace_enabled                         = settings.data_trace_enabled
       # throttling_burst_limit                     = settings.throttling_burst_limit
       # throttling_rate_limit                      = settings.throttling_rate_limit
@@ -136,6 +136,7 @@ resource "aws_api_gateway_method_settings" "this" {
       # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
     }
   }
+  depends_on = [aws_api_gateway_account.this]
 }
 
 resource "aws_api_gateway_method_response" "this" {
@@ -173,9 +174,9 @@ resource "aws_api_gateway_integration_response" "this" {
   response_templates = lookup(each.value,"response_templates",null)
 }
 
-# resource "aws_api_gateway_account" "this" {
-#   cloudwatch_role_arn = var.cloudwatch_role_arn
-# }
+resource "aws_api_gateway_account" "this" {
+  cloudwatch_role_arn = var.cloudwatch_role_arn
+}
 resource "aws_api_gateway_api_key" "this" {
   for_each = {
     for key in var.api_keys : key.name => {

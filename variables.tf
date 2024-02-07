@@ -395,10 +395,11 @@ variable "waf_acl" {
 #######################
 # CloudWatch Variables
 #######################
-# variable "cloudwatch_role_arn" {
-#   description = "(Required) for the `api_gateway_account` resource."
-#   type        = string
-# }
+variable "cloudwatch_role_arn" {
+  description = "(Required) for the `api_gateway_account` resource."
+  type        = string
+  default = null
+}
 
 variable "log_group_name" {
   description = "(Optional, Forces new resource) The name of the log group. If omitted, Terraform will assign a random, unique name."
