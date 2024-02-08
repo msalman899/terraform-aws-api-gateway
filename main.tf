@@ -24,7 +24,7 @@ resource "aws_api_gateway_deployment" "this" {
   for_each = toset(var.stage_names)
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  description = "Managed by Terraform"
+  description = lookup(var.deployment_version,each.key)
   triggers = {
     # NOTE: The configuration below will satisfy ordering considerations,
     #       but not pick up all future REST API changes. More advanced patterns
@@ -47,7 +47,10 @@ resource "aws_api_gateway_deployment" "this" {
     # We deploy the API every time Terraform is applied instead of using the
     # above method of only applying when the body of the openapi.yaml is
     # updated.
-    redeployment = "${timestamp()}"
+    # redeployment = "${timestamp()}"
+    redeployment = sha1(jsonencode([
+      lookup(var.deployment_version,each.key)
+    ]))
   }
 
   depends_on = [

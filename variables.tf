@@ -119,6 +119,12 @@ variable "access_log_format" {
 # API Gateway Method Settings Variables
 ########################################
 
+variable "deployment_version" {
+  description = ""
+  type = any
+  default = {}
+}
+
 variable "resources" {
   description = ""
   type = any
