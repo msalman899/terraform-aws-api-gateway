@@ -11,11 +11,20 @@ resource "aws_api_gateway_rest_api" "this" {
   }
 }
 
+resource "aws_api_gateway_model" "this" {
+  for_each = var.models
+  rest_api_id  = aws_api_gateway_rest_api.this.id
+  name         = each.key
+  description  = lookup(each.value,"description","")
+  content_type = lookup(each.value,"content_type","")
+  schema = lookup(each.value,"schema",{})
+}
+
 resource "aws_api_gateway_deployment" "this" {
   for_each = toset(var.stage_names)
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  description = "Managed by Terraform"
+  description = lookup(var.deployment_version,each.key)
   triggers = {
     # NOTE: The configuration below will satisfy ordering considerations,
     #       but not pick up all future REST API changes. More advanced patterns
@@ -38,7 +47,10 @@ resource "aws_api_gateway_deployment" "this" {
     # We deploy the API every time Terraform is applied instead of using the
     # above method of only applying when the body of the openapi.yaml is
     # updated.
-    redeployment = "${timestamp()}"
+    # redeployment = "${timestamp()}"
+    redeployment = sha1(jsonencode([
+      lookup(var.deployment_version,each.key)
+    ]))
   }
 
   depends_on = [
@@ -99,31 +111,46 @@ resource "aws_api_gateway_method" "this" {
   api_key_required     = lookup(each.value, "api_key_required")
   http_method          = element(split(" ", each.key),1)
   authorization        = lookup(each.value, "authorization")
+  request_parameters = lookup(each.value, "request_parameters", null)
+  request_models        = lookup(each.value, "request_models", null)
+
+  depends_on = [aws_api_gateway_model.this]
 }
 
-# resource "aws_api_gateway_method_settings" "this" {
-#   for_each = var.stage_method_settings
+resource "aws_api_gateway_method_settings" "this" {
+  for_each = var.method_settings
 
-#   rest_api_id = aws_api_gateway_rest_api.this.id
-#   stage_name  = element(split(" ", each.key), 0)
-#   method_path = element(split(" ", each.key), 1)
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  stage_name  = element(split(" ", each.key), 0)
+  method_path = element(split(" ", each.key), 1)
 
-#   dynamic "settings" {
-#     for_each = length(var.stage_method_settings) > 0 ? [true] : []
-#     content {
-#       metrics_enabled                            = lookup(each.value, "metrics_enabled")
-#       logging_level                              = lookup(each.value, "logging_level")
-#       # data_trace_enabled                         = settings.data_trace_enabled
-#       # throttling_burst_limit                     = settings.throttling_burst_limit
-#       # throttling_rate_limit                      = settings.throttling_rate_limit
-#       # caching_enabled                            = settings.caching_enabled
-#       # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
-#       # cache_data_encrypted                       = settings.cache_data_encrypted
-#       # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
-#       # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
-#     }
-#   }
-# }
+  dynamic "settings" {
+    for_each = length(var.method_settings) > 0 ? [true] : []
+    content {
+      metrics_enabled                            = lookup(each.value, "metrics_enabled",false)
+      logging_level                              = lookup(each.value, "logging_level","OFF")
+      # data_trace_enabled                         = settings.data_trace_enabled
+      # throttling_burst_limit                     = settings.throttling_burst_limit
+      # throttling_rate_limit                      = settings.throttling_rate_limit
+      # caching_enabled                            = settings.caching_enabled
+      # cache_ttl_in_seconds                       = settings.cache_ttl_in_seconds
+      # cache_data_encrypted                       = settings.cache_data_encrypted
+      # require_authorization_for_cache_control    = settings.require_authorization_for_cache_control
+      # unauthorized_cache_control_header_strategy = settings.unauthorized_cache_control_header_strategy
+    }
+  }
+  depends_on = [aws_api_gateway_account.this]
+}
+
+resource "aws_api_gateway_method_response" "this" {
+  for_each = var.resources
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
+  http_method = aws_api_gateway_method.this[each.key].http_method
+  status_code = lookup(each.value,"status_code",null)
+
+  response_models = lookup(each.value,"response_models",null)
+}
 
 resource "aws_api_gateway_integration" "this" {
   for_each = var.integrations
@@ -140,9 +167,19 @@ resource "aws_api_gateway_integration" "this" {
   request_templates = lookup(each.value, "request_templates", null)
 }
 
-# resource "aws_api_gateway_account" "this" {
-#   cloudwatch_role_arn = var.cloudwatch_role_arn
-# }
+resource "aws_api_gateway_integration_response" "this" {
+  for_each = var.integrations
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = element(split(" ", each.key),0) == "/" ? data.aws_api_gateway_resource.root.id : aws_api_gateway_resource.this[each.key].id
+  http_method       = aws_api_gateway_integration.this[each.key].http_method
+  status_code       = lookup(each.value,"status_code",null)
+
+  response_templates = lookup(each.value,"response_templates",null)
+}
+
+resource "aws_api_gateway_account" "this" {
+  cloudwatch_role_arn = var.cloudwatch_role_arn
+}
 resource "aws_api_gateway_api_key" "this" {
   for_each = {
     for key in var.api_keys : key.name => {
