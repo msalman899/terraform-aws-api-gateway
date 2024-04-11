@@ -111,7 +111,8 @@ resource "aws_api_gateway_method" "this" {
   api_key_required     = lookup(each.value, "api_key_required")
   http_method          = element(split(" ", each.key),1)
   authorization        = lookup(each.value, "authorization")
-  request_parameters = lookup(each.value, "request_parameters", null)
+  request_validator_id = lookup(each.value, "request_validator_id",null)
+  request_parameters   = lookup(each.value, "request_parameters", null)
   request_models        = lookup(each.value, "request_models", null)
 
   depends_on = [aws_api_gateway_model.this]
